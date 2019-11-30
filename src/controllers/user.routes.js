@@ -14,17 +14,10 @@ router.post("/", (req, res) => {
     const session = driver.session();
 
     session
-      .run(`MATCH (user:User {username:"${username}"}) RETURN user;`)
-      .then(result => {
-        if (result.records.length === 0) {
-          return session.run(
-            `CREATE (user:User {username:"${username}", password:"${password}", active: true })
-            RETURN user;`
-          );
-        } else {
-          throw new Error("Username already exists!");
-        }
-      })
+      .run(
+        `CREATE (user:User {username:"${username}", password:"${password}", active: true })
+        RETURN user;`
+      )
       .then(result => {
         if (result.records.length === 1) {
           const {
@@ -130,61 +123,109 @@ router.get("/", (req, res) => {
       result.records.forEach(record => {
         users.push(record.toObject().user.properties.username);
       });
-      
+
       const sortedUsers = users.sort();
-      res.status(200).send({ sortedUsers });
+      res.status(200).send({ users: sortedUsers });
     })
     .catch(error => res.status(400).send({ error: error }));
 });
 
 router.get("/:username", (req, res) => {
-    const username = req.params.username;
-  
-    const session = driver.session();
-  
-      session
-        .run(
-          `MATCH (user:User {username:"${username}", active: true })
-          RETURN user;`
-        )
-        .then(result => {
-          if (result.records.length === 1) {
-            const username = result.records[0].toObject().user.properties.username;
-            res.status(200).send({ username });
-          } else {
-            res
-              .status(400)
-              .send({ error: "User doesn't exist!" });
-          }
-        })
-        .catch(error => res.status(400).send({ error: error }));
-  
-      session.close();
-  });
+  const username = req.params.username;
 
-  router.post("/exists", (req, res) => {
-    const username = req.body.username;
-  
-    if (username) {
-        const session = driver.session();
-  
-      session
-        .run(
-          `MATCH (user:User {username:"${username}" })
+  const session = driver.session();
+
+  session
+    .run(
+      `MATCH (user:User {username:"${username}", active: true })
           RETURN user;`
-        )
-        .then(result => {
-            const exists = result.records.length === 1;
-            res.status(200).send({ result: exists });
-        })
-        .catch(error => res.status(400).send({ error: error }));
-  
-      session.close();
-    } else {
-        res.status(400).send({
-          error: "Missing required property, must have property: `username`!"
-        });
+    )
+    .then(result => {
+      if (result.records.length === 1) {
+        const username = result.records[0].toObject().user.properties.username;
+        res.status(200).send({ username });
+      } else {
+        res.status(400).send({ error: "User doesn't exist!" });
       }
-  });
+    })
+    .catch(error => res.status(400).send({ error: error }));
+
+  session.close();
+});
+
+router.post("/exists", (req, res) => {
+  const username = req.body.username;
+
+  if (username) {
+    const session = driver.session();
+
+    session
+      .run(
+        `MATCH (user:User {username:"${username}" })
+          RETURN user;`
+      )
+      .then(result => {
+        const exists = result.records.length === 1;
+        res.status(200).send({ result: exists });
+      })
+      .catch(error => res.status(400).send({ error: error }));
+
+    session.close();
+  } else {
+    res.status(400).send({
+      error: "Missing required property, must have property: `username`!"
+    });
+  }
+});
+
+router.post("/friends/:username", (req, res) => {
+  const username = req.params.username;
+  const friend = req.body.friend;
+
+  if (!friend) {
+    res.status(400).send({
+      error: "Missing required property, must have property: `friend`!"
+    });
+  }
+
+  if (friend === username) {
+    res.status(400).send({
+      error: "username and friend name can't be the same!!"
+    });
+  }
+
+  const session = driver.session();
+
+  session
+    .run(
+      `MATCH (user:User {username:"${username}"})
+        MATCH (friend:User {username:"${friend}"})
+        MERGE (user)-[:FriendsWith]-(friend);`
+    )
+    .then(() => res.status(201).send())
+    .catch(error => res.status(400).send({ error: error.message }));
+});
+
+router.get("/friends/:username", (req, res) => {
+  const username = req.params.username;
+
+  const session = driver.session();
+
+  session
+    .run(
+      `MATCH (user:User {username:"${username}"})-[:FriendsWith]-(friend:User)
+        RETURN friend;`
+    )
+    .then(result => {
+      const friends = [];
+
+      result.records.forEach(rec =>
+        friends.push(rec.toObject().friend.properties.username)
+      );
+
+      res.status(200).send({ friends });
+    })
+    .catch(error => res.status(400).send({ error: error.message }));
+});
 
 module.exports = router;

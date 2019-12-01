@@ -139,10 +139,9 @@ router.put("/:characterName", (req, res) => {
   session.close();
 });
 
-router.delete("/:username/:characterName", (req, res) => {
-  const username = req.params.username;
+router.delete(":characterName", (req, res) => {
   const characterName = req.params.characterName;
-  const password = req.body.password;
+  const { username, password } = req.body;
 
   if (!password) {
     res.status(400).send({

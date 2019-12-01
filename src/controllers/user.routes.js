@@ -180,7 +180,7 @@ router.post("/exists", (req, res) => {
 
 router.post("/friends/:username", (req, res) => {
   const username = req.params.username;
-  const friend = req.body.friend;
+  const { password, friend } = req.body;
 
   if (!friend) {
     res.status(400).send({
@@ -198,7 +198,7 @@ router.post("/friends/:username", (req, res) => {
 
   session
     .run(
-      `MATCH (user:User {username:"${username}"})
+      `MATCH (user:User {username:"${username}", password:"${password}", active: true })
         MATCH (friend:User {username:"${friend}"})
         MERGE (user)-[:FriendsWith]-(friend);`
     )

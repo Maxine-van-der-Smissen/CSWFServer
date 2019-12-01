@@ -114,17 +114,20 @@ router.delete("/:speciesName", (req, res) => {
 module.exports = router;
 
 function toSpecies(record) {
-  const { name, description, ...stats } = record.properties;
+  const { name, description, ...statsProp } = record.properties;
+
+  const stats = {};
+
+  for (prop in statsProp) {
+    stats[prop] = +statsProp[prop];
+  }
 
   const species = {
     id: +record.identity,
     name,
-    description
+    description,
+    stats
   };
-
-  for (prop in stats) {
-    species[prop] = +stats[prop];
-  }
 
   return species;
 }

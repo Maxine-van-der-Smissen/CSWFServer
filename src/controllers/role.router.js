@@ -110,17 +110,20 @@ router.delete("/:roleName", (req, res) => {
 module.exports = router;
 
 function toRole(record) {
-  const { name, description, ...stats } = record.properties;
+  const { name, description, ...statsProp } = record.properties;
 
+  const stats = {};
+
+  for (prop in statsProp) {
+    stats[prop] = +statsProp[prop];
+  }
+  
   const role = {
     id: +record.identity,
     name,
-    description
+    description,
+    stats
   };
-
-  for (prop in stats) {
-    role[prop] = +stats[prop];
-  }
 
   return role;
 }

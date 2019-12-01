@@ -49,15 +49,13 @@ router.post("/", (req, res) => {
   }
 });
 
-router.put("/:username/:characterName", (req, res) => {
-  const username = req.params.username;
+router.put("/:characterName", (req, res) => {
   const characterName = req.params.characterName;
+  const { username, password, name, species, role, world } = req.body;
 
-  const { password, name, species, role, world } = req.body;
-
-  if (!password) {
+  if (!username || !password) {
     res.status(400).send({
-      error: "Missing required property `password`!"
+      error: "Missing required property `username` and/or `password`!"
     });
     return;
   }

@@ -266,7 +266,7 @@ router.get("/user/:username", (req, res) => {
     .catch(error => res.status(400).send({ error: error.message }));
 });
 
-router.get("/search/:characterName", (req, res) => {
+router.post("/search/:characterName", (req, res) => {
   const characterName = req.params.characterName;
   const type = req.body.type.toLowerCase();
 

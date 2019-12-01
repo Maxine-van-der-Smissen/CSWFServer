@@ -204,7 +204,7 @@ router.post("/friends/:username", (req, res) => {
         MATCH (friend:User {username:"${friend}"})
         MERGE (user)-[:FriendsWith]-(friend);`
     )
-    .then(() => res.status(201).send())
+    .then(() => res.status(201).send({ created: true }))
     .catch(error => res.status(400).send({ error: error.message }));
 });
 

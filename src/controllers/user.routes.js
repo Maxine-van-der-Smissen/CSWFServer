@@ -20,11 +20,7 @@ router.post("/", (req, res) => {
       )
       .then(result => {
         if (result.records.length === 1) {
-          const {
-            username,
-            password
-          } = result.records[0].toObject().user.properties;
-          res.status(201).send({ username, password });
+          res.status(201).send(toUser(result.records[0].toObject().user));
         } else {
           throw new Error("User creation failed!");
         }
@@ -55,11 +51,7 @@ router.put("/:username", (req, res) => {
       )
       .then(result => {
         if (result.records.length === 1) {
-          const {
-            username,
-            password
-          } = result.records[0].toObject().user.properties;
-          res.status(200).send({ username, password });
+          res.status(200).send(toUser(result.records[0].toObject().user));
         } else {
           res
             .status(400)
@@ -92,11 +84,7 @@ router.delete("/:username", (req, res) => {
       )
       .then(result => {
         if (result.records.length === 1) {
-          const {
-            username,
-            password
-          } = result.records[0].toObject().user.properties;
-          res.status(200).send({ username, password });
+          res.status(200).send(toUser(result.records[0].toObject().user));
         } else {
           res
             .status(400)
@@ -130,6 +118,21 @@ router.get("/", (req, res) => {
     .catch(error => res.status(400).send({ error: error }));
 });
 
+router.get("/login/:username", (req, res) => {
+  const username = req.params.username;
+  const password = req.body.password;
+
+  const session = driver.session();
+
+  session
+    .run(
+      `MATCH (user:User {username:"${username}", password:"${password}", active: true })
+        RETURN count(user) > 0 AS valid;`
+    )
+    .then(result => res.status(200).send({ valid: result.records[0].toObject().valid }))
+    .catch(error => res.status(400).send({ error: error.message }));
+});
+
 router.get("/:username", (req, res) => {
   const username = req.params.username;
 
@@ -142,8 +145,8 @@ router.get("/:username", (req, res) => {
     )
     .then(result => {
       if (result.records.length === 1) {
-        const username = result.records[0].toObject().user.properties.username;
-        res.status(200).send({ username });
+        const { password, ...userProps } = toUser(result.records[0].toObject().user);
+        res.status(200).send({ ...userProps });
       } else {
         res.status(400).send({ error: "User doesn't exist!" });
       }
@@ -162,11 +165,10 @@ router.post("/exists", (req, res) => {
     session
       .run(
         `MATCH (user:User {username:"${username}" })
-          RETURN user;`
+        RETURN count(user) > 0 AS result;`
       )
       .then(result => {
-        const exists = result.records.length === 1;
-        res.status(200).send({ result: exists });
+        res.status(200).send({ result: result.records[0].toObject().result });
       })
       .catch(error => res.status(400).send({ error: error }));
 
@@ -229,3 +231,13 @@ router.get("/friends/:username", (req, res) => {
 });
 
 module.exports = router;
+
+function toUser(record) {
+
+  const user = {
+    id: +record.identity,
+    ...record.properties
+  };
+
+  return user;
+}

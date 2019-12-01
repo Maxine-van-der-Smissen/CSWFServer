@@ -139,7 +139,7 @@ router.put("/:characterName", (req, res) => {
   session.close();
 });
 
-router.delete(":characterName", (req, res) => {
+router.post("/delete/:characterName", (req, res) => {
   const characterName = req.params.characterName;
   const { username, password } = req.body;
 
